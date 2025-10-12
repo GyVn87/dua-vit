@@ -51,11 +51,17 @@ int main() {
 
     sf::View view({960.f, 540.f}, {1920.f, 1080.f});
 
-    sf::Font font("times.ttf");
-    sf::Texture duckTexture("duck.png");
-    sf::Texture backgroundTexture("background.jpg");
+    sf::Font font("fonts/times.ttf");
+
+    sf::Texture duckTexture("images/duck.png");
+
+    sf::Texture backgroundTexture("images/background.jpg");
     sf::Sprite backgroundSprite(backgroundTexture);
     backgroundSprite.setScale({3.6, 3.6});
+
+    sf::Texture finishLineTexture("images/finishLine.png");
+    sf::Sprite finishLineSprite(finishLineTexture);
+    finishLineSprite.setPosition({5000.f, 0.f});
 
     std::vector<std::string> ducksNameList = {"tuy", "owij", "tie", "kha", "ta"};
     std::vector<Duck> ducksList;
@@ -85,7 +91,8 @@ int main() {
         Duck* leader = &ducksList.at(0);
     
         window.clear(sf::Color::White);
-        window.draw(backgroundSprite);
+        window.draw(finishLineSprite);
+
         for (Duck& duck : ducksList) {
             duck.move(dt);
             duck.draw(window);
@@ -93,6 +100,7 @@ int main() {
             if (duck.getX() > leader->getX())
                 leader = &duck;
         }
+
         if (leader->getX() > view.getCenter().x)
             view.setCenter({leader->getX(), 540.f});
         window.setView(view);
