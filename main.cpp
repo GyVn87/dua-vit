@@ -36,6 +36,10 @@ class Duck {
         float getX() {
             return sprite.getPosition().x;
         }
+
+        std::string getName() {
+            return name.getString();
+        }
 };
 
 int main() {
@@ -49,6 +53,10 @@ int main() {
     sf::Clock frameClock;
     sf::Clock randomClock;
 
+    bool isRaceEnd = false;
+    std::string winnerName;
+    float finishLineX = 5000.f;
+
     sf::View view({960.f, 540.f}, {1920.f, 1080.f});
 
     sf::Font font("fonts/times.ttf");
@@ -56,18 +64,30 @@ int main() {
     sf::Texture duckTexture("images/duck.png");
 
     sf::Texture backgroundTexture("images/background.jpg");
+    backgroundTexture.setRepeated(true);
     sf::Sprite backgroundSprite(backgroundTexture);
-    backgroundSprite.setScale({3.6, 3.6});
+    backgroundSprite.setScale({5.9f, 5.9f});
+    backgroundSprite.setTextureRect(sf::IntRect({0, 0}, {6000, 1920}));
 
     sf::Texture finishLineTexture("images/finishLine.png");
     sf::Sprite finishLineSprite(finishLineTexture);
-    finishLineSprite.setPosition({5000.f, 0.f});
+    finishLineSprite.setPosition({finishLineX, 0.f});
 
-    std::vector<std::string> ducksNameList = {"tuy", "owij", "tie", "kha", "ta"};
+    sf::Text winnerNameText(font);
+    winnerNameText.setCharacterSize(100);
+    winnerNameText.setFillColor(sf::Color::Red);
+    winnerNameText.setPosition({finishLineX - 100.f, 440.f});
+
+    sf::Text leaderPosition(font);
+    leaderPosition.setCharacterSize(30);
+    leaderPosition.setFillColor(sf::Color::Black);
+    leaderPosition.setPosition({900.f, 0.f});
+
+    std::vector<std::string> ducksNameList = {"tuy", "owij", "tie", "kha", "ta", "con cho"};
     std::vector<Duck> ducksList;
 
     for (int index = 0; index < ducksNameList.size(); index++) {
-        float initialY = 150.f*index + 300.f;
+        float initialY = 150.f*index + 100.f;
         ducksList.emplace_back(font, ducksNameList.at(index), duckTexture, initialY);
     }
 
@@ -80,30 +100,48 @@ int main() {
                 window.close();
         }
 
-        float dt = frameClock.restart().asSeconds();
-
-        if (randomClock.getElapsedTime().asSeconds() > 2.f) {
-            randomClock.restart();
-            for (Duck& duck : ducksList)
-                duck.setSpeed(distrb(gen));
-        }
-
-        Duck* leader = &ducksList.at(0);
-    
         window.clear(sf::Color::White);
+        window.draw(backgroundSprite);
         window.draw(finishLineSprite);
 
-        for (Duck& duck : ducksList) {
-            duck.move(dt);
-            duck.draw(window);
+        if (isRaceEnd == false) {
+            float dt = frameClock.restart().asSeconds();
 
-            if (duck.getX() > leader->getX())
-                leader = &duck;
+            if (randomClock.getElapsedTime().asSeconds() > 2.f) {
+                randomClock.restart();
+                for (Duck& duck : ducksList)
+                    duck.setSpeed(distrb(gen));
+            }
+
+            Duck* leader = &ducksList.at(0);
+
+            for (Duck& duck : ducksList) {
+                duck.move(dt);
+
+                if (duck.getX() > leader->getX())
+                    leader = &duck;
+
+                if (duck.getX() > finishLineX) {
+                    isRaceEnd = true;
+                    winnerName = duck.getName();
+                }
+            }
+            leaderPosition.setPosition({leader->getX(), 0.f});
+            leaderPosition.setString(std::to_string(leader->getX()));
+
+            if (leader->getX() > view.getCenter().x)
+                view.setCenter({leader->getX(), 540.f});
+            window.setView(view);
+        }
+        else {
+            winnerNameText.setString(winnerName);
+            window.draw(winnerNameText);
         }
 
-        if (leader->getX() > view.getCenter().x)
-            view.setCenter({leader->getX(), 540.f});
-        window.setView(view);
+        for (Duck& duck : ducksList) 
+            duck.draw(window);
+
+        window.draw(leaderPosition);
         window.display();
     }
 }
