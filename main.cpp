@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <random> 
 #include <algorithm>
+#include <iostream>
 
 class Duck {
     private:
@@ -15,8 +16,13 @@ class Duck {
         Duck(sf::Font& font, std::string& stringName, sf::Texture& texture, float initialY) : name(font), sprite(texture) {
             name.setString(stringName);
             name.setFillColor(sf::Color::Black);
+            name.setPosition({0, initialY - 30.f});
+
+            const float targetHeight = 82.f;
+            sf::FloatRect bounds = sprite.getLocalBounds();
+            float scaleRatio = targetHeight / bounds.size.y;
+            sprite.setScale({scaleRatio, scaleRatio});
             sprite.setPosition({0, initialY});
-            name.setPosition({0, initialY - 20.f});
         }
 
         void draw(sf::RenderWindow& window) {
@@ -83,12 +89,23 @@ int main() {
     leaderPosition.setFillColor(sf::Color::Black);
     leaderPosition.setPosition({900.f, 0.f});
 
-    std::vector<std::string> ducksNameList = {"tuy", "owij", "tie", "kha", "ta", "con cho"};
+    std::vector<std::string> ducksNameList = {"tuyeen", "loiwj", "tieen", "taan", "khan"};
+    std::vector<sf::Texture> avatarTexturesList;
+    avatarTexturesList.reserve(ducksNameList.size());
     std::vector<Duck> ducksList;
 
     for (int index = 0; index < ducksNameList.size(); index++) {
         float initialY = 150.f*index + 100.f;
-        ducksList.emplace_back(font, ducksNameList.at(index), duckTexture, initialY);
+
+        avatarTexturesList.emplace_back();
+        sf::Texture& avatarTexture = avatarTexturesList.back();
+        std::string avatarPath = "avatars/" + ducksNameList.at(index) + ".png";
+        if (!avatarTexture.loadFromFile(avatarPath)) {
+            std::cerr << "Khong the tai " << avatarPath << ", nen se dung hinh mac dinh" << std::endl;
+            // Khong can gia tri tra ve nen ep kieu ve void de tranh canh bao
+            (void)avatarTexture.loadFromFile("images/duck.png");
+        }
+        ducksList.emplace_back(font, ducksNameList.at(index), avatarTexturesList.back(), initialY);
     }
 
     for (Duck& duck : ducksList)
