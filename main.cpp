@@ -65,8 +65,7 @@ int main() {
 
     sf::View view({960.f, 540.f}, {1920.f, 1080.f});
 
-    sf::Font font("fonts/times.ttf");
-
+    sf::Font TimesNewRomanFont("fonts/times.ttf");
     sf::Texture duckTexture("images/duck.png");
 
     sf::Texture backgroundTexture("images/background.jpg");
@@ -79,33 +78,43 @@ int main() {
     sf::Sprite finishLineSprite(finishLineTexture);
     finishLineSprite.setPosition({finishLineX, 0.f});
 
-    sf::Text winnerNameText(font);
+    sf::Text winnerNameText(TimesNewRomanFont);
     winnerNameText.setCharacterSize(100);
     winnerNameText.setFillColor(sf::Color::Red);
     winnerNameText.setPosition({finishLineX - 100.f, 440.f});
 
-    sf::Text leaderPosition(font);
-    leaderPosition.setCharacterSize(30);
-    leaderPosition.setFillColor(sf::Color::Black);
-    leaderPosition.setPosition({900.f, 0.f});
+    // Khi chỉnh kích thước của thanh tiến độ thì chỉ cần chỉnh của progressBarBG vì các đối tượng khác đã được thiết kế để phụ thuộc vào kích cỡ của nó
+    sf::RectangleShape progressBarBG({800.f, 30.f});
+    progressBarBG.setFillColor(sf::Color(160, 160, 160));
+    progressBarBG.setPosition({560.f, 20.f});
+    sf::RectangleShape progressBarFill({0.f, 30.f});
+    progressBarFill.setFillColor(sf::Color::Green);
+    progressBarFill.setPosition({560.f, 20.f});
+
+    sf::Text progressPercentText(TimesNewRomanFont);
+    progressPercentText.setCharacterSize(30);
+    progressPercentText.setFillColor(sf::Color::Black);
+    progressPercentText.setPosition({1380.f, 20.f});
+    float progressPercent = 0.f;
+    std::string progressPercentString;
 
     std::vector<std::string> ducksNameList = {"tuyeen", "loiwj", "tieen", "taan", "khan"};
     std::vector<sf::Texture> avatarTexturesList;
+    // dòng này rất cần thiết vì nếu dữ liệu trong vector vượt quá sức chứa, nó sẽ thay đổi vị trí bộ nhớ khiến cho sprite không trỏ đến địa chỉ texture mới, khiến hình ảnh không được hiện thị
     avatarTexturesList.reserve(ducksNameList.size());
     std::vector<Duck> ducksList;
 
     for (int index = 0; index < ducksNameList.size(); index++) {
         float initialY = 150.f*index + 100.f;
-
         avatarTexturesList.emplace_back();
         sf::Texture& avatarTexture = avatarTexturesList.back();
         std::string avatarPath = "avatars/" + ducksNameList.at(index) + ".png";
         if (!avatarTexture.loadFromFile(avatarPath)) {
             std::cerr << "Khong the tai " << avatarPath << ", nen se dung hinh mac dinh" << std::endl;
-            // Khong can gia tri tra ve nen ep kieu ve void de tranh canh bao
+            // Không cần giá trị trả về nên ép kiểu về void để tránh cảnh báo
             (void)avatarTexture.loadFromFile("images/duck.png");
         }
-        ducksList.emplace_back(font, ducksNameList.at(index), avatarTexturesList.back(), initialY);
+        ducksList.emplace_back(TimesNewRomanFont, ducksNameList.at(index), avatarTexturesList.back(), initialY);
     }
 
     for (Duck& duck : ducksList)
@@ -143,22 +152,33 @@ int main() {
                     winnerName = duck.getName();
                 }
             }
-            leaderPosition.setPosition({leader->getX(), 0.f});
-            leaderPosition.setString(std::to_string(leader->getX()));
 
+            progressPercent = leader->getX() / finishLineX;
+            progressBarFill.setSize({progressBarBG.getGlobalBounds().size.x * progressPercent, 30.f});
+            progressPercentString = std::to_string(static_cast<int>(progressPercent * 100.f)) + "%";
+            progressPercentText.setString(progressPercentString);
+
+            // Dòng này để ngăn việc mới bắt đầu đua thì camera đã tập trung vào góc trái, thêm dòng này thì khi con vịt đầu tiên đi quá nửa màn hình thì góc nhìn mới di chuyển theo
             if (leader->getX() > view.getCenter().x)
                 view.setCenter({leader->getX(), 540.f});
             window.setView(view);
+            
+            progressBarBG.setPosition({view.getCenter().x - 400.f, 20.f});
+            progressBarFill.setPosition({view.getCenter().x - 400.f, 20.f});
+            progressPercentText.setPosition({view.getCenter().x + progressBarBG.getGlobalBounds().size.x / 2 + 20.f, 20.f});
         }
         else {
             winnerNameText.setString(winnerName);
             window.draw(winnerNameText);
         }
 
+        window.draw(progressBarBG);
+        window.draw(progressBarFill);
+        window.draw(progressPercentText);
+
         for (Duck& duck : ducksList) 
             duck.draw(window);
 
-        window.draw(leaderPosition);
         window.display();
     }
 }
