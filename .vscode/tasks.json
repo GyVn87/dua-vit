@@ -14,6 +14,7 @@
                 "-lsfml-graphics",
                 "-lsfml-window",
                 "-lsfml-system",
+                "-lsfml-audio",
 
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe"

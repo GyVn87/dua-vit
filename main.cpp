@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <vector>
 #include <string>
 #include <cstdlib>
@@ -59,14 +60,30 @@ int main() {
     sf::Clock frameClock;
     sf::Clock randomClock;
 
+    float pauseDuration = 3.5f;
+    sf::Clock pauseClock;
+    bool isPaused = false;
+
+    bool isRaceStarting = false;
     bool isRaceEnd = false;
     std::string winnerName;
     float finishLineX = 5000.f;
 
+    sf::SoundBuffer startingSoundBuffer("sounds/starting.wav");
+    sf::Sound startingSound(startingSoundBuffer);
+    sf::SoundBuffer victorySoundBuffer("sounds/victory.wav");
+    sf::Sound victorySound(victorySoundBuffer);
+
     sf::View view({960.f, 540.f}, {1920.f, 1080.f});
 
     sf::Font TimesNewRomanFont("fonts/times.ttf");
+    sf::Font TimesNewRomanBoldFont("fonts/timesbd.ttf");
     sf::Texture duckTexture("images/duck.png");
+
+    sf::Text countDown(TimesNewRomanBoldFont);
+    countDown.setPosition({960.f, 400.f});
+    countDown.setCharacterSize(150);
+    countDown.setFillColor(sf::Color::Yellow);
 
     sf::Texture backgroundTexture("images/background.jpg");
     backgroundTexture.setRepeated(true);
@@ -124,13 +141,45 @@ int main() {
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>())
                 window.close();
+            else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
+                if (keyPressed->scancode == sf::Keyboard::Scan::Space) {
+                    if (!isRaceStarting) {
+                        startingSound.play();
+                        isPaused = true;
+                        pauseClock.restart();
+                    }
+                    isRaceStarting = true;
+                }
         }
 
         window.clear(sf::Color::White);
         window.draw(backgroundSprite);
         window.draw(finishLineSprite);
 
-        if (isRaceEnd == false) {
+        window.draw(progressBarBG);
+        window.draw(progressBarFill);
+        window.draw(progressPercentText);
+
+        for (Duck& duck : ducksList) 
+            duck.draw(window);
+
+        if (isPaused)
+            if (pauseClock.getElapsedTime().asSeconds() >= pauseDuration)
+                isPaused = false;
+            else {
+                int remaining = static_cast<int>(4.f - pauseClock.getElapsedTime().asSeconds());
+                countDown.setString(std::to_string(remaining));
+                window.draw(countDown);
+            }
+
+        if (!isRaceStarting || isPaused) {
+            frameClock.restart();
+            window.display();
+            randomClock.restart();
+            continue;
+        }
+        
+        if (!isRaceEnd) {
             float dt = frameClock.restart().asSeconds();
 
             if (randomClock.getElapsedTime().asSeconds() > 2.f) {
@@ -149,6 +198,7 @@ int main() {
 
                 if (duck.getX() > finishLineX) {
                     isRaceEnd = true;
+                    victorySound.play();
                     winnerName = duck.getName();
                 }
             }
@@ -171,13 +221,6 @@ int main() {
             winnerNameText.setString(winnerName);
             window.draw(winnerNameText);
         }
-
-        window.draw(progressBarBG);
-        window.draw(progressBarFill);
-        window.draw(progressPercentText);
-
-        for (Duck& duck : ducksList) 
-            duck.draw(window);
 
         window.display();
     }
